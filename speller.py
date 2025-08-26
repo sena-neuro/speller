@@ -5,7 +5,6 @@ import pylsl
 from psychopy import visual, event, monitors, misc
 from psychopy import core, gui
 from pylsl import StreamInfo, StreamOutlet
-import pyntbci
 import sys
 
 
@@ -28,12 +27,19 @@ KEY_SPACE = 1.0  # The distance between keys (visual degrees)
 KEY_COLORS = ["black", "white", "green"]  # The colors for the keys
 
 # The speller grid to present
-KEYS = [
+QWERTY_KEYS = [
     ["!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "=", "backspace"],  # 13
     ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}"],  # 12
     ["shift", "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar"],  # 13
     ["tilde", "Z", "X", "C", "V", "B", "N", "M", "smaller", "larger", "question"],  # 11
-    ["clear", "space",  "autocomplete", "speaker"]]  # 4
+    ["clear", "space",  "autocomplete", "speaker"],  # 4
+]
+MATRIX_KEYS = [
+    ["A", "B", "C", "D", "E", "F", "G", "H"],  # 8
+    ["I", "J", "K", "L", "M", "N", "O", "P"],  # 8
+    ["Q", "R", "S", "T", "U", "V", "W", "X"],  # 8
+    ["Y", "Z", "1", "2", "3", "4", "5", "6"],  # 8
+]
 
 # Windows does not allow / , : * ? " < > | ~ in file names
 KEY_MAPPING = {
@@ -284,16 +290,18 @@ def main():
     # Get user information
     global SCREEN_FR, SCREEN_DISTANCE, CUE_TIME, TRIAL_TIME, ITI_TIME
     dlg = gui.Dlg(title="Task setup")
-    dlg.addText('Participant info')
-    dlg.addField('ID:', "sub-99")
-    dlg.addField('Age:', 99)
-    dlg.addField('Sex:', choices=["F", "M", "X", "Prefer not to answer"])
-    dlg.addText('Task info')
-    dlg.addField('Screen refresh rate:', SCREEN_FR)
-    dlg.addField('Screen distance:', SCREEN_DISTANCE)
-    dlg.addField('Cue seconds', CUE_TIME)
-    dlg.addField('Trial seconds', TRIAL_TIME)
-    dlg.addField('Inter-trial seconds', ITI_TIME)
+    dlg.addText(text='Participant info')
+    dlg.addField(key='ID:', initial="sub-99")
+    dlg.addField(key='Age:', initial=99)
+    dlg.addField(key='Sex:', choices=["Prefer not to answer", "F", "M", "X"])
+    dlg.addText(text='Task info')
+    dlg.addField(key='Screen refresh rate:', initial=SCREEN_FR)
+    dlg.addField(key='Screen distance:', initial=SCREEN_DISTANCE)
+    dlg.addField(key='Cue seconds', initial=CUE_TIME)
+    dlg.addField(key='Trial seconds', initial=TRIAL_TIME)
+    dlg.addField(key='Inter-trial seconds', initial=ITI_TIME)
+    dlg.addField(key='Grid', choices=["Matrix", "QWERTY"])
+    dlg.addField(key='Codebook', choices=["shifted m-sequence", "modulated Gold codes"])
     data = dlg.show()
     if dlg.OK:
         subject = data['ID:']
@@ -304,6 +312,8 @@ def main():
         CUE_TIME = data['Cue seconds']
         TRIAL_TIME = data['Trial seconds']
         ITI_TIME = data['Inter-trial seconds']
+        grid = data['Grid']
+        codebook = data['Codebook']
     else:
         raise Exception('User cancelled')
 
@@ -313,14 +323,21 @@ def main():
     ppd = speller.get_pixels_per_degree()
 
     # Add keys
+    if grid.lower() == "matrix":
+        KEYS = MATRIX_KEYS
+    elif grid.lower() == "qwerty":
+        KEYS = QWERTY_KEYS
+    else:
+        raise Exception("Unknown grid:", grid)
     for y in range(len(KEYS)):
         for x in range(len(KEYS[y])):
             x_pos = int((x - len(KEYS[y]) / 2 + 0.5) * (KEY_WIDTH + KEY_SPACE) * ppd)
             y_pos = int(-(y - len(KEYS) / 2) * (KEY_HEIGHT + KEY_SPACE) * ppd - TEXT_FIELD_HEIGHT * ppd)
-            if y == 0 or y == 1:
-                x_pos += int(0.25 * KEY_WIDTH * ppd)
-            elif y == 3 or y == 4:
-                x_pos -= int(0.5 * KEY_WIDTH * ppd)
+            if grid.lower() == "qwerty":
+                if y == 0 or y == 1:
+                    x_pos += int(0.25 * KEY_WIDTH * ppd)
+                elif y == 3 or y == 4:
+                    x_pos -= int(0.5 * KEY_WIDTH * ppd)
             if KEYS[y][x] == "space":
                 images = [os.path.join("images", f"{color}.png") for color in KEY_COLORS]
             else:
@@ -335,17 +352,24 @@ def main():
         name="text", text="", size=(SCREEN_SIZE[0], TEXT_FIELD_HEIGHT * ppd), pos=(x_pos, y_pos), field_color=(0, 0, 0),
         text_color=(-1, -1, -1))
 
-    # Load stimulation sequences
-    V = pyntbci.stimulus.modulate(pyntbci.stimulus.make_gold_codes())
-    codes = dict()
-    codes_to_keys = dict()
+    # Add codes
+    n_classes = sum([len(row) for row in KEYS])
+    if codebook.lower() == "shifted m-sequence":
+        codes = np.load(os.path.join("codes", "shifted_m_sequence.npz"))["codes"]
+        if grid.lower() == "matrix":
+            codes = codes[::2, :]  # select the proper lags
+    elif codebook.lower() == "modulated Gold codes":
+        codes = np.load(os.path.join("codes", "modulated_gold_codes.npz"))["codes"]
+    else:
+        raise Exception("Unknown codebook:", codebook)
+    stimuli = dict()
+    stimuli_to_keys = dict()
     i = 0
     for row in KEYS:
         for key in row:
-            codes[key] = np.repeat(V[i, :], int(SCREEN_FR / PRESENTATION_RATE)).tolist()
-            codes_to_keys[i] = key
+            stimuli[key] = np.repeat(codes[i, :], int(SCREEN_FR / PRESENTATION_RATE)).tolist()
+            stimuli_to_keys[i] = key
             i += 1
-    n_classes = len(codes_to_keys)
 
     # Set highlights
     highlights = dict()
@@ -361,13 +385,13 @@ def main():
     # Log version information
     speller.log(f"python_version;{sys.version_info}")
     speller.log(f"psychopy_version;{psychopy.__version__}")
-    speller.log(f"pyntbci_version;{pyntbci.__version__}")
 
     # Log settings
     speller.log(
         f"settings;subject={subject};age={age};sex={sex};" +
         f"screen_fr={SCREEN_FR};screen_distance={SCREEN_DISTANCE};" +
-        f"cue_time={CUE_TIME};trial_time={TRIAL_TIME};iti_time={ITI_TIME}")
+        f"cue_time={CUE_TIME};trial_time={TRIAL_TIME};iti_time={ITI_TIME};" +
+        f"grid={grid.lower()};codebook={codebook.lower()}")
 
     # Start
     speller.log(marker=["start_run"])
@@ -381,7 +405,7 @@ def main():
     for i_trial in range(trials.size):
         # Set random target
         target = trials[i_trial]
-        target_key = codes_to_keys[int(target)]
+        target_key = stimuli_to_keys[int(target)]
         print(f"{1 + i_trial:02d}/{trials.size:d}\t{target:02d}\t{target_key:s}")
 
         # Cue
@@ -394,7 +418,7 @@ def main():
 
         # Trial
         speller.run(
-            codes, TRIAL_TIME,
+            stimuli, TRIAL_TIME,
             start_marker=f"start_trial;trial={i_trial}",
             stop_marker=f"stop_trial;trial={i_trial}")
 
