@@ -13,17 +13,17 @@ CUE_TIME = 0.8  # Time to present the cue, the target symbol (s)
 TRIAL_TIME = 4.2  # Time to present the visual stimulation (s)
 ITI_TIME = 0.5  # Inter-trial time, a break in-between trials (s)
 
-SCREEN_FR = 60  # The refresh rate of the monitor (Hz)
-SCREEN_ID = 0  # The ID of the monitor (#)
-SCREEN_SIZE = (1792, 1120)  # The resolution of the monitor (1920, 1080) (px, px)
-SCREEN_WIDTH = 53.0  # The width of the monitor (cm)
-SCREEN_DISTANCE = 50.0  # The distance of the monitor to the participant (cm)
+SCREEN_FR = 60  # 240  # The refresh rate of the monitor (Hz)
+SCREEN_ID = 1  # The ID of the monitor (#)
+SCREEN_SIZE = (1920, 1080)  # (2560, 1600)  # The resolution of the monitor (px, px)
+SCREEN_WIDTH = 53.5  # 34.5  # The width of the monitor (cm)
+SCREEN_DISTANCE = 100.0  # The distance of the monitor to the participant (cm)
 
-TEXT_FIELD_HEIGHT = 5.0  # Height of the text field on top of the screen (visual degrees)
+TEXT_FIELD_HEIGHT = 3.0  # Height of the text field on top of the screen (visual degrees)
 
-KEY_WIDTH = 3.0  # The width of the keys (visual degrees)
-KEY_HEIGHT = 3.0  # The height of the keys (visual degrees)
-KEY_SPACE = 1.0  # The distance between keys (visual degrees)
+KEY_WIDTH = 2.5  # The width of the keys (visual degrees)
+KEY_HEIGHT = 2.5  # The height of the keys (visual degrees)
+KEY_SPACE = 0.5  # The distance between keys (visual degrees)
 KEY_COLORS = ["black", "white", "green"]  # The colors for the keys
 
 # The speller grid to present
@@ -69,7 +69,7 @@ class Speller(object):
 
     def __init__(self, size, width, distance, screen=0, fr=60, window_color=(0, 0, 0), quit_keys=None):
         """
-        Create a keyboard.
+        Create a speller.
 
         Args:
             size (array-like): 
@@ -85,7 +85,7 @@ class Speller(object):
             window_color (array-like):
                 The background color of the window, default: (0, 0, 0)
             quit_keys (list):
-                A list of keyboard keys that can be used to abort the speller, default: ["q", "escape"]
+                A list of keys that can be used to abort the speller, default: ["q", "escape"]
         """
         self.fr = fr
         if quit_keys is None:
@@ -99,7 +99,7 @@ class Speller(object):
 
         # Set up window
         self.window = visual.Window(
-            monitor=self.monitor, screen=screen, units="pix", size=size, color=window_color, fullscr=False,
+            monitor=self.monitor, screen=screen, units="pix", size=size, color=window_color, fullscr=True,
             waitBlanking=False, allowGUI=False)
         self.window.setMouseVisible(False)
 
@@ -144,7 +144,7 @@ class Speller(object):
 
     def add_key(self, name, size, pos, images=None):
         """
-        Add a key to the keyboard.
+        Add a key to the speller.
 
         Args:
             name (str):
@@ -168,9 +168,10 @@ class Speller(object):
         # Set autoDraw to True for first default key to keep app visible
         self.keys[name][0].setAutoDraw(True)
 
-    def add_text_field(self, name, text, size, pos, field_color=(0, 0, 0), text_color=(-1, -1, -1)):
+    def add_text_field(self, name, text, size, pos, field_color=(0, 0, 0), text_color=(-1, -1, -1), text_size=None,
+                       text_alignment="left"):
         """
-        Add a text field to the keyboard.
+        Add a text field to the speller.
 
         Args:
             name (str):
@@ -185,11 +186,17 @@ class Speller(object):
                 The color of the background of the text field, default: (0, 0, 0)
             text_color (array-like):
                 The color of the text on the text field, default: (-1, -1, -1)
+            text_size (float):
+                The font size of the text, default: 0.5 * size[1]
+            text_alignment (str):
+                The alignment of the text, default: "left"
         """
         assert name not in self.fields, "Trying to add a text field with a name that already exists!"
+        if text_size is None:
+            text_size = 0.5 * size[1]
         self.fields[name] = self.fields[name] = visual.TextBox2(
-            win=self.window, text=text, font='Courier', units="pix", pos=pos, size=size, letterHeight=0.5*size[1],
-            color=text_color, fillColor=field_color, alignment="left", autoDraw=True, autoLog=False)
+            win=self.window, text=text, font='Courier', units="pix", pos=pos, size=size, letterHeight=text_size,
+            color=text_color, fillColor=field_color, alignment=text_alignment, autoDraw=True, autoLog=False)
 
     def set_field_text(self, name, text):
         """
@@ -197,12 +204,24 @@ class Speller(object):
 
         Args:
             name (str):
-                The name of the key
+                The name of the text field
             text (str):
                 The text
         """
         self.fields[name].setText(text)
         self.window.flip()
+
+    def set_text_field_autodraw(self, name, autodraw):
+        """
+        Remove a text field.
+
+        Args:
+            name (str):
+                The name of the text field
+            autodraw (bool):
+                The autodraw setting, either True or False
+        """
+        self.fields[name].autoDraw = autodraw
 
     def log(self, marker, on_flip=False):
         if marker is not None:
@@ -279,7 +298,7 @@ class Speller(object):
 
     def quit(self):
         """
-        Quit the keyboard.
+        Quit the speller.
         """
         self.window.setMouseVisible(True)
         self.window.close()
@@ -317,18 +336,56 @@ def main():
     else:
         raise Exception('User cancelled')
 
-    # Setup speller
-    speller = Speller(
-        size=SCREEN_SIZE, width=SCREEN_WIDTH, distance=SCREEN_DISTANCE, screen=SCREEN_ID, fr=SCREEN_FR)
-    ppd = speller.get_pixels_per_degree()
-
-    # Add keys
+    # Set grid
     if grid.lower() == "matrix":
         KEYS = MATRIX_KEYS
     elif grid.lower() == "qwerty":
         KEYS = QWERTY_KEYS
     else:
         raise Exception("Unknown grid:", grid)
+
+    # Set codes
+    n_stimuli = sum([len(row) for row in KEYS])
+    if codebook.lower() == "shifted m-sequence":
+        codes = np.load(os.path.join("codes", "shifted_m_sequence.npz"))["codes"]
+        if grid.lower() == "matrix":
+            codes = codes[::2, :]  # select the proper lags
+    elif codebook.lower() == "modulated gold codes":
+        codes = np.load(os.path.join("codes", "modulated_gold_codes.npz"))["codes"]
+    else:
+        raise Exception("Unknown codebook:", codebook)
+
+    # Setup speller
+    speller = Speller(
+        size=SCREEN_SIZE, width=SCREEN_WIDTH, distance=SCREEN_DISTANCE, screen=SCREEN_ID, fr=SCREEN_FR)
+    ppd = speller.get_pixels_per_degree()
+
+    # Show instructions
+    speller.add_text_field(
+        name="instructions", text="", size=SCREEN_SIZE, pos=(0, 0), field_color=(0, 0, 0), text_color=(-1, -1, -1),
+        text_size=0.6 * ppd, text_alignment="center")
+    instructions = (
+        "You will be presented with a grid of symbols.\n"
+        f"A target symbol will be highlighted in green for {CUE_TIME:.1f} s.\n"
+        f"Then, all symbols, also the target, will flash for {TRIAL_TIME:.1f} s.\n"
+        "During that flashing, keep fixating your eyes at the target symbol.\n"
+        f"You will fixate at each of {n_stimuli} symbols once, in random order.\n"
+        "During the entire task, do not move and minimize eye blinks.\n"
+        f"This task takes about {n_stimuli * (CUE_TIME + TRIAL_TIME + ITI_TIME) / 60:.1f} min.\n"
+    )
+    speller.set_field_text(name="instructions", text=instructions)
+    print("Presenting instructions")
+    event.waitKeys(keyList=["c"])
+    speller.set_text_field_autodraw(name="instructions", autodraw=False)
+
+    # Add text field at the top of the screen
+    x_pos = 0
+    y_pos = SCREEN_SIZE[1] / 2 - TEXT_FIELD_HEIGHT * ppd / 2
+    speller.add_text_field(
+        name="text", text="", size=(SCREEN_SIZE[0], TEXT_FIELD_HEIGHT * ppd), pos=(x_pos, y_pos), field_color=(0, 0, 0),
+        text_color=(-1, -1, -1))
+
+    # Add keys
     for y in range(len(KEYS)):
         for x in range(len(KEYS[y])):
             x_pos = int((x - len(KEYS[y]) / 2 + 0.5) * (KEY_WIDTH + KEY_SPACE) * ppd)
@@ -345,29 +402,14 @@ def main():
             speller.add_key(
                 name=KEYS[y][x], images=images, size=(int(KEY_WIDTH * ppd), int(KEY_HEIGHT * ppd)), pos=(x_pos, y_pos))
 
-    # Add text field at the top of the screen
-    x_pos = 0
-    y_pos = SCREEN_SIZE[1] / 2 - TEXT_FIELD_HEIGHT * ppd / 2
-    speller.add_text_field(
-        name="text", text="", size=(SCREEN_SIZE[0], TEXT_FIELD_HEIGHT * ppd), pos=(x_pos, y_pos), field_color=(0, 0, 0),
-        text_color=(-1, -1, -1))
-
     # Add codes
-    n_classes = sum([len(row) for row in KEYS])
-    if codebook.lower() == "shifted m-sequence":
-        codes = np.load(os.path.join("codes", "shifted_m_sequence.npz"))["codes"]
-        if grid.lower() == "matrix":
-            codes = codes[::2, :]  # select the proper lags
-    elif codebook.lower() == "modulated Gold codes":
-        codes = np.load(os.path.join("codes", "modulated_gold_codes.npz"))["codes"]
-    else:
-        raise Exception("Unknown codebook:", codebook)
+    codes = np.repeat(codes, int(SCREEN_FR / PRESENTATION_RATE), axis=1)  # upsample to frame refresh rate
     stimuli = dict()
     stimuli_to_keys = dict()
     i = 0
     for row in KEYS:
         for key in row:
-            stimuli[key] = np.repeat(codes[i, :], int(SCREEN_FR / PRESENTATION_RATE)).tolist()
+            stimuli[key] = codes[i, :].tolist()
             stimuli_to_keys[i] = key
             i += 1
 
@@ -401,7 +443,7 @@ def main():
     speller.set_field_text(name="text", text="")
 
     # Loop trials
-    trials = np.random.permutation(n_classes)
+    trials = np.random.permutation(n_stimuli)
     for i_trial in range(trials.size):
         # Set random target
         target = trials[i_trial]
