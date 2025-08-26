@@ -193,11 +193,6 @@ try:
 except Exception as error:
     raise Exception("Error in starting the LSL recorder. Did you start the LSL Recorder App?")
 
-# Wait
-speller.set_field_text(name="text", text="Waiting to start")
-print("Waiting to start")
-speller.wait_key()
-
 # Log version information
 speller.log(f"python_version;{sys.version_info}")
 speller.log(f"psychopy_version;{psychopy.__version__}")
@@ -257,11 +252,6 @@ speller.log(marker=["stop_run"])
 speller.set_field_text(name="text", text="Stopping")
 print("Stopping")
 speller.run(highlights, duration=5.0)
-
-# Wait
-if out == 0:
-    speller.set_field_text(name="text", text="Waiting to stop")
-    speller.wait_key()
 
 # Stop LSL Recorder
 recorder.stop()

@@ -23,28 +23,26 @@ conda activate cvep
 pip install -r requirements.txt
 ```
 
+4. Install the [LSL Recorder App](https://github.com/labstreaminglayer/App-LabRecorder).
+
 ## Run
 Use a simple terminal/cmd to go through the following steps.
 
-1. Activate the `cvep` conda environment as follows:
+1. Make sure that the LSL Recorder App is open in the background. Starting and stopping of recording will be done automatically.
+
+2. Activate the `cvep` conda environment as follows:
 
 ```bash
 conda activate cvep
 ```
 
-2. Start the c-VEP speller BCI as follows:
+3. Start the speller as follows:
 ```bash
 python experiment.py
 ```
 
-3. A dialog box will appear in which one can fill out participant information as well as change certain settings of the speller. Fill out as required and press OK. 
-
-4. Firstly, task instructions will be presented. Press the key `c` to continue. 
-
-5. The c-VEP Speller BCI will emerge and initially wait for a buttonpress to start. Press the key `c` to continue.
-
-6. The c-VEP Speller BCI will randomly go through all symbols, first cueing in green which symbol is the current target and then presenting visual stimulation. The participant should fixate their eyes on the cued symbol, and keep their eyes fixated during the visual stimulation period. Additionally, overall, the participant should not move and minimize eye blinks. 
-
-7. After all symbols were presented once, the c-VEP BCI Speller will stop and wait for a key press. Press the key `c` to continue. The speller will close.
-
-8. Please note, that during the runtime one can abort the c-VEP Speller BCI by pressing the key `q` or `escape`. The speller will then close immediately.
+4. A dialog box will appear in which one can fill out session information. Fill out as required and press OK.
+5. Task instructions will be presented. Read carefully and press the key `c` to continue.
+6. The speller will start and randomly go through all symbols, first cueing the target symbol in green and then presenting visual stimulation. The participant should fixate their eyes on the cued symbol, and keep their eyes fixated during the visual stimulation period. Additionally, overall, the participant should not move and minimize eye blinks.
+7. After all symbols were presented once, the speller will stop and close.
+8. Please note, that during the runtime one can abort the speller by pressing the key `q` or `escape`. The speller will then close immediately.
