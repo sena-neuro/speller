@@ -8,10 +8,10 @@ import sys
 
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "cvep")
-SUBJECT = "01"
-SESSION = "01"
-RUN = "001"
-TASK = "cvep"
+SUBJECT = "01"  # subject identifier
+SESSION = "01"  # session identifier
+RUN = 1  # run identifier
+TASK = "cvep"  # task identifier
 
 PRESENTATION_RATE = 60  # Number of bits to present per second (Hz)
 CUE_TIME = 0.8  # Time to present the cue, the target symbol (s)
@@ -88,7 +88,7 @@ if dlg.OK:
     age = data['Age:']
     sex = data['Sex:']
     session = data['Session:']
-    run = data['Run:']
+    run = int(data['Run:'])
     SCREEN_FR = data['Screen refresh rate:']
     SCREEN_DISTANCE = data['Screen distance:']
     CUE_TIME = data['Cue seconds']
@@ -126,7 +126,7 @@ ppd = speller.get_pixels_per_degree()
 # Show instructions
 speller.add_text_field(
     name="instructions", text="", size=SCREEN_SIZE, pos=(0, 0), field_color=(0, 0, 0), text_color=(-1, -1, -1),
-    text_size=0.6 * ppd, text_alignment="center")
+    text_size=int(0.6 * ppd), text_alignment="center")
 instructions = (
     "You will be presented with a grid of symbols.\n"
     f"A target symbol will be highlighted in green for {CUE_TIME:.1f} s.\n"
@@ -160,10 +160,10 @@ for y in range(len(KEYS)):
 
 # Add text field at the top of the screen
 x_pos = 0
-y_pos = SCREEN_SIZE[1] / 2 - TEXT_FIELD_HEIGHT * ppd / 2
+y_pos = int(SCREEN_SIZE[1] / 2 - TEXT_FIELD_HEIGHT * ppd / 2)
 speller.add_text_field(
-    name="text", text="", size=(SCREEN_SIZE[0], TEXT_FIELD_HEIGHT * ppd), pos=(x_pos, y_pos), field_color=(0, 0, 0),
-    text_color=(-1, -1, -1))
+    name="text", text="", size=(SCREEN_SIZE[0], int(TEXT_FIELD_HEIGHT * ppd)), pos=(x_pos, y_pos),
+    field_color=(0, 0, 0), text_color=(-1, -1, -1))
 speller.set_field_text(name="text", text="Preparing")
 
 # Add stimuli
@@ -205,7 +205,7 @@ speller.log(
     f"grid={grid.lower()};codebook={codebook.lower()}")
 
 # Start
-speller.log(marker=["start_run"])
+speller.log(marker="start_run")
 speller.set_field_text(name="text", text="Starting")
 print("Starting")
 speller.run(highlights, duration=5.0)
@@ -248,7 +248,7 @@ for i_trial in range(trials.size):
             break
 
 # Stop
-speller.log(marker=["stop_run"])
+speller.log(marker="stop_run")
 speller.set_field_text(name="text", text="Stopping")
 print("Stopping")
 speller.run(highlights, duration=5.0)
