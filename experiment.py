@@ -194,7 +194,7 @@ except Exception as error:
     raise Exception("Error in starting the LSL recorder. Did you start the LSL Recorder App?")
 
 # Log version information
-speller.log(f"python_version;{sys.version_info}")
+speller.log(f"python_version;{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
 speller.log(f"psychopy_version;{psychopy.__version__}")
 
 # Log settings
