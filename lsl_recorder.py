@@ -1,5 +1,6 @@
 import os
 import socket
+import subprocess
 import time
 
 
@@ -11,12 +12,21 @@ class LSLRecorder(object):
         Address of the LSL Recorder App socket.
     port: int (default: 22345)
         Port of the LSL recorder App socket.
+    app_root: str (default: None)
+        Root of the LSL Recorder App.
     """
     def __init__(
             self,
             address: str = "localhost",
             port: int = 22345,
+            app_root:str = None,
     ):
+        # Spawn LSL Recorder App
+        if app_root is not None:
+            os.system(f"open {app_root}")
+            time.sleep(2)
+
+        # Open socket
         self.socket = socket.create_connection((address, port))
 
     def set_recorder(
@@ -47,7 +57,6 @@ class LSLRecorder(object):
             flag: int
                 Whether run-time errors emerged
         """
-        self.update()
         msg = (
             b"filename {root:%b} {task:%b} {run:%x} {participant:%b} {session:%b}\n"
             % (

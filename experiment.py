@@ -7,6 +7,8 @@ from speller import Speller
 import sys
 
 
+LSL_RECORDER_APP_DIR = "/opt/homebrew/Cellar/labrecorder/1.16.5_9/LabRecorder/LabRecorder.app"
+
 DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "cvep")
 SUBJECT = "01"  # subject identifier
 SESSION = "01"  # session identifier
@@ -118,10 +120,31 @@ elif codebook.lower() == "modulated gold codes":
 else:
     raise Exception("Unknown codebook:", codebook)
 
-# Setup speller
+# Setup speller (N.B.: starts the marker stream)
 speller = Speller(
     size=SCREEN_SIZE, width=SCREEN_WIDTH, distance=SCREEN_DISTANCE, screen=SCREEN_ID, fr=SCREEN_FR)
 ppd = speller.get_pixels_per_degree()
+
+# Set up and start LSL Recorder
+try:
+    print("Starting LSL recorder")
+    recorder = LSLRecorder(app_root=LSL_RECORDER_APP_DIR)
+    recorder.set_recorder(root=DATA_DIR, subject=subject, session=session, run=run, task=TASK)
+    recorder.update()
+    recorder.start()
+except Exception as error:
+    raise Exception("Error in starting the LSL recorder. Did you start the LSL Recorder App?")
+
+# Log version information
+speller.log(f"python_version;{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+speller.log(f"psychopy_version;{psychopy.__version__}")
+
+# Log settings
+speller.log(
+    f"settings;subject={subject};age={age};sex={sex};" +
+    f"screen_fr={SCREEN_FR};screen_distance={SCREEN_DISTANCE};" +
+    f"cue_time={CUE_TIME};trial_time={TRIAL_TIME};iti_time={ITI_TIME};" +
+    f"grid={grid.lower()};codebook={codebook.lower()}")
 
 # Show instructions
 speller.add_text_field(
@@ -137,9 +160,11 @@ instructions = (
     f"This task takes about {n_stimuli * (CUE_TIME + TRIAL_TIME + ITI_TIME) / 60:.1f} min.\n"
 )
 speller.set_field_text(name="instructions", text=instructions)
+speller.log("start_instructions")
 print("Presenting instructions")
 speller.wait_key()
 speller.set_text_field_autodraw(name="instructions", autodraw=False)
+speller.log("stop_instructions")
 
 # Add keys
 for y in range(len(KEYS)):
@@ -182,27 +207,6 @@ highlights = dict()
 for row in KEYS:
     for key in row:
         highlights[key] = [0]
-
-# Set up and start LSL Recorder
-try:
-    print("Starting recorder")
-    recorder = LSLRecorder()
-    recorder.set_recorder(root=DATA_DIR, subject=subject, session=session, run=run, task=TASK)
-    recorder.update()
-    recorder.start()
-except Exception as error:
-    raise Exception("Error in starting the LSL recorder. Did you start the LSL Recorder App?")
-
-# Log version information
-speller.log(f"python_version;{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
-speller.log(f"psychopy_version;{psychopy.__version__}")
-
-# Log settings
-speller.log(
-    f"settings;subject={subject};age={age};sex={sex};" +
-    f"screen_fr={SCREEN_FR};screen_distance={SCREEN_DISTANCE};" +
-    f"cue_time={CUE_TIME};trial_time={TRIAL_TIME};iti_time={ITI_TIME};" +
-    f"grid={grid.lower()};codebook={codebook.lower()}")
 
 # Start
 speller.log(marker="start_run")
