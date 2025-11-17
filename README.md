@@ -1,6 +1,6 @@
 # Minimal c-VEP Speller
 
-This repository contains the documentation and resources to set up a minimal c-VEP speller BCI for communication using Psychopy. 
+This repository contains the documentation and resources to set up a minimal c-VEP speller BCI for communication using Psychopy. This implementation uses PsychoPy's ImageStim with pre-rendered images to boost speed while having a larger burden on memory. See the speller2 repository for an implementation using PsychoPy's TextBox2 for more continuous stimulation.
 
 ## Setup
 Use a simple terminal/cmd to go through the following steps.
