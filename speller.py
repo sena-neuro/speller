@@ -21,7 +21,7 @@ class Speller(object):
             The screen number that is used, default: 0
         fr: int
             The screen refresh rate, default: 60
-        window_color: tuple[float, float, float] (default: (0, 0, 0))
+        window_color: tuple[float, float, float] (default: (0., 0., 0.))
             The background color of the window in (r, g, b)
         control_keys: list[str] (default: ["c"])
             A list of keys that can be used to continue the speller
@@ -36,7 +36,7 @@ class Speller(object):
             distance: float,
             screen: int = 0,
             fr: int = 60,
-            window_color: tuple[int, int, int] = (0, 0, 0),
+            window_color: tuple[float, float, float] = (0., 0., 0.),
             control_keys: list[str] = None,
             quit_keys: list[str] = None,
     ):
@@ -56,8 +56,7 @@ class Speller(object):
 
         # Set up window
         self.window = visual.Window(
-            monitor=self.monitor, screen=screen, units="pix", size=size, color=window_color, fullscr=True,
-            waitBlanking=False, allowGUI=False)
+            monitor=self.monitor, screen=screen, units="pix", size=size, color=window_color, fullscr=True)
         self.window.setMouseVisible(False)
 
         # Initialize keys and fields
@@ -177,7 +176,7 @@ class Speller(object):
         assert name not in self.fields, "Trying to add a text field with a name that already exists!"
         if text_size is None:
             text_size = 0.5 * size[1]
-        self.fields[name] = self.fields[name] = visual.TextBox2(
+        self.fields[name] = visual.TextBox2(
             win=self.window, text=text, font='Courier', units="pix", pos=pos, size=size, letterHeight=text_size,
             color=text_color, fillColor=field_color, alignment=text_alignment, autoDraw=True, autoLog=False)
 
@@ -197,7 +196,6 @@ class Speller(object):
                 The text
         """
         self.fields[name].setText(text)
-        self.window.flip()
 
     def set_text_field_autodraw(
             self,
@@ -293,12 +291,12 @@ class Speller(object):
             self.window.flip()
 
         # Send stop marker
-        self.log(stop_marker)
+        self.log(stop_marker, on_flip=True)
+        self.window.flip()
 
         # Set autoDraw to True to keep speller visible
         for key in self.keys.values():
             key[0].setAutoDraw(True)
-        self.window.flip()
 
         return 0
 
