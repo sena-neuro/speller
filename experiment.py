@@ -1,3 +1,4 @@
+from pathlib import Path
 from lsl_recorder import LSLRecorder
 import numpy as np
 import os
@@ -7,7 +8,10 @@ from speller import Speller
 import sys
 
 
-LSL_RECORDER_APP_DIR = "/opt/homebrew/Cellar/labrecorder/1.16.5_9/LabRecorder/LabRecorder.app"
+LSL_RECORDER_APP_DIR = (
+    "/usr/local/opt/labrecorder/LabRecorder/LabRecorder.app"
+    # "/opt/homebrew/Cellar/labrecorder/1.16.5_9/LabRecorder/LabRecorder.app"
+)
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "cvep")
 SUBJECT = "01"  # subject identifier
@@ -20,18 +24,27 @@ CUE_TIME = 0.8  # Time to present the cue, the target symbol (s)
 TRIAL_TIME = 4.2  # Time to present the visual stimulation (s)
 ITI_TIME = 0.5  # Inter-trial time, a break in-between trials (s)
 
-SCREEN_FR = 240  # The refresh rate of the monitor (Hz)
+SCREEN_FR = 60  # The refresh rate of the monitor (Hz)
 SCREEN_ID = 0  # The ID of the monitor (#)
-SCREEN_SIZE = (2560, 1600)  # The resolution of the monitor (px, px)
-SCREEN_WIDTH = 34.5  # The width of the monitor (cm)
-SCREEN_DISTANCE = 100.0  # The distance of the monitor to the participant (cm)
+SCREEN_SIZE = (1920, 1080)  # The resolution of the monitor (px, px)
+SCREEN_WIDTH = 53  # The width of the monitor (cm)
+SCREEN_DISTANCE = 60.0  # The distance of the monitor to the participant (cm)
 
-TEXT_FIELD_HEIGHT = 3.0  # Height of the text field on top of the screen (visual degrees)
+TEXT_FIELD_HEIGHT = (
+    3.0  # Height of the text field on top of the screen (visual degrees)
+)
 
-KEY_WIDTH = 2.5  # The width of the keys (visual degrees)
-KEY_HEIGHT = 2.5  # The height of the keys (visual degrees)
-KEY_SPACE = 0.5  # The distance between keys (visual degrees)
-KEY_COLORS = ["black", "white", "green"]  # The colors for the keys
+KEY_WIDTH = 4  # The width of the keys (visual degrees)
+KEY_HEIGHT = 4  # The height of the keys (visual degrees)
+KEY_SPACE = 0.8  # The distance between keys (visual degrees)
+
+# ON_COLOR = "black"
+# OFF_COLOR = "black"
+WINDOW_COLOR = "black"
+ON_COLOR = "gray"
+OFF_COLOR = "grating"
+CUE_COLOR = "green"
+KEY_COLORS = [OFF_COLOR, ON_COLOR, CUE_COLOR]  # The colors for the keys
 
 # The speller grid to present
 QWERTY_KEYS = [
@@ -45,11 +58,13 @@ MATRIX_KEYS = [
     ["A", "B", "C", "D", "E", "F", "G", "H"],  # 8
     ["I", "J", "K", "L", "M", "N", "O", "P"],  # 8
     ["Q", "R", "S", "T", "U", "V", "W", "X"],  # 8
-    ["Y", "Z", "1", "2", "3", "4", "5", "6"],  # 8
+    ["Y", "Z", "space", "backspace", "comma", "dot", "question", "clear"],  # 8
 ]
 
 # Windows does not allow / , : * ? " < > | ~ in file names
 KEY_MAPPING = {
+    "space": "􁁺",
+    "dot": ".",
     "slash": "/",
     "comma": ",",
     "colon": ":",
@@ -61,8 +76,8 @@ KEY_MAPPING = {
     "bar": "|",
     "tilde": "~",
     "backslash": "\\",
-    "backspace": "<-",
-    "clear": "<<",
+    "backspace": "􀆛",
+    "clear": "􁝀",
     "autocomplete": ">>",
     "shift": "sh",
     "speaker": "sp",
@@ -71,35 +86,36 @@ KEY_MAPPING = {
 
 # Get task information
 dlg = gui.Dlg(title="Task setup")
-dlg.addText(text='Session info')
-dlg.addField(key='Participant:', initial=SUBJECT)
-dlg.addField(key='Age:', initial=99)
-dlg.addField(key='Sex:', choices=["Prefer not to answer", "F", "M", "X"])
-dlg.addField(key='Session:', initial=SESSION)
-dlg.addField(key='Run:', initial=RUN)
-dlg.addField(key='Screen refresh rate:', initial=SCREEN_FR)
-dlg.addField(key='Screen distance:', initial=SCREEN_DISTANCE)
-dlg.addField(key='Cue seconds', initial=CUE_TIME)
-dlg.addField(key='Trial seconds', initial=TRIAL_TIME)
-dlg.addField(key='Inter-trial seconds', initial=ITI_TIME)
-dlg.addField(key='Grid', choices=["Matrix", "QWERTY"])
-dlg.addField(key='Codebook', choices=["shifted m-sequence", "modulated Gold codes"])
+dlg.addText(text="Session info")
+dlg.addField(key="Participant:", initial=SUBJECT)
+dlg.addField(key="Age:", initial=99)
+dlg.addField(key="Sex:", choices=["Prefer not to answer", "F", "M", "X"])
+dlg.addField(key="Session:", initial=SESSION)
+dlg.addField(key="Run:", initial=RUN)
+dlg.addField(key="Screen refresh rate:", initial=SCREEN_FR)
+dlg.addField(key="Screen distance:", initial=SCREEN_DISTANCE)
+dlg.addField(key="Cue seconds", initial=CUE_TIME)
+dlg.addField(key="Trial seconds", initial=TRIAL_TIME)
+dlg.addField(key="Inter-trial seconds", initial=ITI_TIME)
+dlg.addField(key="Grid", choices=["Matrix", "QWERTY"])
+dlg.addField(key="Codebook", choices=[
+             "shifted m-sequence", "modulated Gold codes"])
 data = dlg.show()
 if dlg.OK:
-    subject = data['Participant:']
-    age = data['Age:']
-    sex = data['Sex:']
-    session = data['Session:']
-    run = int(data['Run:'])
-    SCREEN_FR = data['Screen refresh rate:']
-    SCREEN_DISTANCE = data['Screen distance:']
-    CUE_TIME = data['Cue seconds']
-    TRIAL_TIME = data['Trial seconds']
-    ITI_TIME = data['Inter-trial seconds']
-    grid = data['Grid']
-    codebook = data['Codebook']
+    subject = data["Participant:"]
+    age = data["Age:"]
+    sex = data["Sex:"]
+    session = data["Session:"]
+    run = int(data["Run:"])
+    SCREEN_FR = data["Screen refresh rate:"]
+    SCREEN_DISTANCE = data["Screen distance:"]
+    CUE_TIME = data["Cue seconds"]
+    TRIAL_TIME = data["Trial seconds"]
+    ITI_TIME = data["Inter-trial seconds"]
+    grid = data["Grid"]
+    codebook = data["Codebook"]
 else:
-    raise Exception('User cancelled')
+    raise Exception("User cancelled")
 
 # Set grid
 if grid.lower() == "matrix":
@@ -122,34 +138,54 @@ else:
 
 # Setup speller (N.B.: starts the marker stream)
 speller = Speller(
-    size=SCREEN_SIZE, width=SCREEN_WIDTH, distance=SCREEN_DISTANCE, screen=SCREEN_ID, fr=SCREEN_FR)
+    size=SCREEN_SIZE,
+    width=SCREEN_WIDTH,
+    distance=SCREEN_DISTANCE,
+    screen=SCREEN_ID,
+    fr=SCREEN_FR,
+    window_color=WINDOW_COLOR,
+)
 ppd = speller.get_pixels_per_degree()
 
 # Set up and start LSL Recorder
 try:
     print("Starting LSL recorder")
     recorder = LSLRecorder(app_root=LSL_RECORDER_APP_DIR)
-    recorder.set_recorder(root=DATA_DIR, subject=subject, session=session, run=run, task=TASK)
+    recorder.set_recorder(
+        root=DATA_DIR, subject=subject, session=session, run=run, task=TASK
+    )
     recorder.update()
     recorder.start()
 except Exception as error:
-    raise Exception("Error in starting the LSL recorder. Did you start the LSL Recorder App?")
+    raise Exception(
+        "Error in starting the LSL recorder. Did you start the LSL Recorder App?"
+    )
 
 # Log version information
-speller.log(f"python_version;{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+speller.log(
+    f"python_version;{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+)
 speller.log(f"psychopy_version;{psychopy.__version__}")
 
 # Log settings
 speller.log(
-    f"settings;subject={subject};age={age};sex={sex};" +
-    f"screen_fr={SCREEN_FR};screen_distance={SCREEN_DISTANCE};" +
-    f"cue_time={CUE_TIME};trial_time={TRIAL_TIME};iti_time={ITI_TIME};" +
-    f"grid={grid.lower()};codebook={codebook.lower()}")
+    f"settings;subject={subject};age={age};sex={sex};"
+    + f"screen_fr={SCREEN_FR};screen_distance={SCREEN_DISTANCE};"
+    + f"cue_time={CUE_TIME};trial_time={TRIAL_TIME};iti_time={ITI_TIME};"
+    + f"grid={grid.lower()};codebook={codebook.lower()}"
+)
 
 # Show instructions
 speller.add_text_field(
-    name="instructions", text="", size=SCREEN_SIZE, pos=(0, 0), field_color=(0, 0, 0), text_color=(-1, -1, -1),
-    text_size=int(0.6 * ppd), text_alignment="center")
+    name="instructions",
+    text="",
+    size=SCREEN_SIZE,
+    pos=(0, 0),
+    field_color=(-1, -1, -1),
+    text_color=(1, 1, 1),
+    text_size=int(ppd),
+    text_alignment="center",
+)
 instructions = (
     "You will be presented with a grid of symbols.\n"
     f"A target symbol will be highlighted in green for {CUE_TIME:.1f} s.\n"
@@ -169,36 +205,73 @@ speller.log("stop_instructions")
 # Add keys
 for y in range(len(KEYS)):
     for x in range(len(KEYS[y])):
-        x_pos = int((x - len(KEYS[y]) / 2 + 0.5) * (KEY_WIDTH + KEY_SPACE) * ppd)
-        y_pos = int(-(y - len(KEYS) / 2) * (KEY_HEIGHT + KEY_SPACE) * ppd - TEXT_FIELD_HEIGHT * ppd)
+        x_pos = int((x - len(KEYS[y]) / 2 + 0.5) *
+                    (KEY_WIDTH + KEY_SPACE) * ppd)
+        y_pos = int(
+            -(y - len(KEYS) / 2) * (KEY_HEIGHT + KEY_SPACE) * ppd
+            - TEXT_FIELD_HEIGHT * ppd
+        )
         if grid.lower() == "qwerty":
             if y == 0 or y == 1:
                 x_pos += int(0.25 * KEY_WIDTH * ppd)
             elif y == 3 or y == 4:
                 x_pos -= int(0.5 * KEY_WIDTH * ppd)
-        if KEYS[y][x] == "space":
-            images = [os.path.join("images", f"{color}.png") for color in KEY_COLORS]
-        else:
-            images = [os.path.join("images", f"{KEYS[y][x]}_{color}.png") for color in KEY_COLORS]
+        images = [
+            os.path.join("images", f"{KEYS[y][x]}_{color}.png") for color in KEY_COLORS
+        ]
+        images.extend(
+            Path("images/gratings/").glob(f"{KEYS[y][x]}_grating_*.png"))
+
         speller.add_key(
-            name=KEYS[y][x], images=images, size=(int(KEY_WIDTH * ppd), int(KEY_HEIGHT * ppd)), pos=(x_pos, y_pos))
+            name=KEYS[y][x],
+            images=images,
+            size=(int(KEY_WIDTH * ppd), int(KEY_HEIGHT * ppd)),
+            pos=(x_pos, y_pos),
+        )
 
 # Add text field at the top of the screen
 x_pos = 0
 y_pos = int(SCREEN_SIZE[1] / 2 - TEXT_FIELD_HEIGHT * ppd / 2)
 speller.add_text_field(
-    name="text", text="", size=(SCREEN_SIZE[0], int(TEXT_FIELD_HEIGHT * ppd)), pos=(x_pos, y_pos),
-    field_color=(0, 0, 0), text_color=(-1, -1, -1))
+    name="text",
+    text="",
+    size=(SCREEN_SIZE[0], int(TEXT_FIELD_HEIGHT * ppd)),
+    pos=(x_pos, y_pos),
+    field_color=(-1, -1, -1),
+    text_color=(1, 1, 1),
+)
 speller.set_field_text(name="text", text="Preparing")
 
+
+def _transform_binary(binary_list):
+    result = []
+    counter = 3
+    current_value = 0
+
+    for i, bit in enumerate(binary_list):
+        if bit == 0:
+            result.append(0)
+            current_value = 0
+        else:
+            if current_value == 0:  # Rise event
+                current_value = counter
+                counter += 1
+            result.append(current_value)
+    return result
+
+
 # Add stimuli
-codes = np.repeat(codes, int(SCREEN_FR / PRESENTATION_RATE), axis=1)  # upsample to frame refresh rate
+codes = np.repeat(
+    codes, int(SCREEN_FR / PRESENTATION_RATE), axis=1
+)  # upsample to frame refresh rate
 stimuli = dict()
+changing_stimuli = dict()
 stimuli_to_keys = dict()
 i = 0
 for row in KEYS:
     for key in row:
         stimuli[key] = codes[i, :].tolist()
+        changing_stimuli[key] = _transform_binary(stimuli[key])
         stimuli_to_keys[i] = key
         i += 1
 
@@ -227,27 +300,33 @@ for i_trial in range(trials.size):
     # Cue
     highlights[target_key] = [2]
     out = speller.run(
-        highlights, CUE_TIME,
+        highlights,
+        CUE_TIME,
         start_marker=f"start_cue;trial={1 + i_trial};target={target};key={target_key}",
-        stop_marker=f"stop_cue;trial={1 + i_trial}")
+        stop_marker=f"stop_cue;trial={1 + i_trial}",
+    )
     highlights[target_key] = [0]
     if out > 0:
         break
 
     # Trial
     out = speller.run(
-        stimuli, TRIAL_TIME,
+        changing_stimuli,
+        TRIAL_TIME,
         start_marker=f"start_trial;trial={1 + i_trial}",
-        stop_marker=f"stop_trial;trial={1 + i_trial}")
+        stop_marker=f"stop_trial;trial={1 + i_trial}",
+    )
     if out > 0:
         break
 
     # Inter-trial
     if ITI_TIME > 0:
         out = speller.run(
-            highlights, ITI_TIME,
+            highlights,
+            ITI_TIME,
             start_marker=f"start_inter_trial;trial={1 + i_trial}",
-            stop_marker=f"stop_inter_trial;trial={1 + i_trial}")
+            stop_marker=f"stop_inter_trial;trial={1 + i_trial}",
+        )
         if out > 0:
             break
 

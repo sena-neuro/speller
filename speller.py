@@ -21,7 +21,7 @@ class Speller(object):
             The screen number that is used, default: 0
         fr: int
             The screen refresh rate, default: 60
-        window_color: tuple[float, float, float] (default: (0, 0, 0))
+        window_color: tuple[float, float, float] (default: (0., 0., 0.))
             The background color of the window in (r, g, b)
         control_keys: list[str] (default: ["c"])
             A list of keys that can be used to continue the speller
@@ -36,7 +36,7 @@ class Speller(object):
             distance: float,
             screen: int = 0,
             fr: int = 60,
-            window_color: tuple[int, int, int] = (0, 0, 0),
+            window_color: tuple[float, float, float] = (0., 0., 0.),
             control_keys: list[str] = None,
             quit_keys: list[str] = None,
     ):
@@ -51,13 +51,15 @@ class Speller(object):
             self.quit_keys = quit_keys
 
         # Set up monitor (sets pixels per degree)
-        self.monitor = monitors.Monitor(name="testMonitor", width=width, distance=distance)
+        self.monitor = monitors.Monitor(
+            name="testMonitor", width=width, distance=distance
+        )
         self.monitor.setSizePix(size)
 
         # Set up window
         self.window = visual.Window(
-            monitor=self.monitor, screen=screen, units="pix", size=size, color=window_color, fullscr=True,
-            waitBlanking=False, allowGUI=False)
+            monitor=self.monitor, screen=screen, units="pix", size=size, color=window_color, fullscr=True)
+
         self.window.setMouseVisible(False)
 
         # Initialize keys and fields
@@ -65,13 +67,18 @@ class Speller(object):
         self.fields = dict()
 
         # Setup LSL stream
-        self.outlet = StreamOutlet(StreamInfo(
-            name='MarkerStream', type='Markers', channel_count=1, nominal_srate=0, channel_format=pylsl.cf_string,
-            source_id='MarkerStream'))
+        self.outlet = StreamOutlet(
+            StreamInfo(
+                name="MarkerStream",
+                type="Markers",
+                channel_count=1,
+                nominal_srate=0,
+                channel_format=pylsl.cf_string,
+                source_id="MarkerStream",
+            )
+        )
 
-    def get_size(
-            self
-    ) -> tuple[int, int]:
+    def get_size(self) -> tuple[int, int]:
         """
         Get the size of the window in pixels, i.e., resolution.
 
@@ -82,9 +89,7 @@ class Speller(object):
         """
         return self.window.size
 
-    def get_pixels_per_degree(
-            self
-    ) -> float:
+    def get_pixels_per_degree(self) -> float:
         """
         Get the pixels per degree of visual angle of the window.
 
@@ -95,9 +100,7 @@ class Speller(object):
         """
         return misc.deg2pix(degrees=1.0, monitor=self.monitor)
 
-    def get_frame_rate(
-            self
-    ) -> int:
+    def get_frame_rate(self) -> int:
         """
         Get the frame refresh rate in Hz of the window.
 
@@ -109,11 +112,11 @@ class Speller(object):
         return int(np.round(self.window.getActualFrameRate(infoMsg="")))
 
     def add_key(
-            self,
-            name: str,
-            size: tuple[int, int],
-            pos: tuple[int, int],
-            images: list[str] = None,
+        self,
+        name: str,
+        size: tuple[int, int],
+        pos: tuple[int, int],
+        images: list[str] = None,
     ) -> None:
         """
         Add a key to the speller.
@@ -127,30 +130,41 @@ class Speller(object):
             pos: tuple[int, int]
                 The (x, y) coordinate of the center of the key, relative to the center of the window
             images: list[str] (default: ["black.png", "white.png"])
-                The images of the key. The first image is the default key. Indices will correspond to the 
+                The images of the key. The first image is the default key. Indices will correspond to the
                 values of the codes.
         """
-        assert name not in self.keys, "Trying to add a box with a name that already exists!"
+        assert name not in self.keys, (
+            "Trying to add a box with a name that already exists!"
+        )
         if images is None:
-            images = ["black.png", "white.png"]
+            images = ["gray.png", "grating.png"]
+            
         self.keys[name] = []
         for image in images:
-            self.keys[name].append(visual.ImageStim(
-                win=self.window, image=image, units="pix", pos=pos, size=size, autoLog=False))
+            self.keys[name].append(
+                visual.ImageStim(
+                    win=self.window,
+                    image=image,
+                    units="pix",
+                    pos=pos,
+                    size=size,
+                    autoLog=False,
+                )
+            )
 
         # Set autoDraw to True for first default key to keep app visible
         self.keys[name][0].setAutoDraw(True)
 
     def add_text_field(
-            self,
-            name: str,
-            text: str,
-            size: tuple[int, int],
-            pos: tuple[int, int],
-            field_color: tuple[float, float, float] = (0., 0., 0.),
-            text_color: tuple[float, float, float] = (-1., -1., -1.),
-            text_size: int = None,
-            text_alignment: str = "left",
+        self,
+        name: str,
+        text: str,
+        size: tuple[int, int],
+        pos: tuple[int, int],
+        field_color: tuple[float, float, float] = (0.0, 0.0, 0.0),
+        text_color: tuple[float, float, float] = (-1.0, -1.0, -1.0),
+        text_size: int = None,
+        text_alignment: str = "left",
     ) -> None:
         """
         Add a text field to the speller.
@@ -174,17 +188,20 @@ class Speller(object):
             text_alignment: str (default: "left")
                 The alignment of the text, default: "left"
         """
-        assert name not in self.fields, "Trying to add a text field with a name that already exists!"
+        assert name not in self.fields, (
+            "Trying to add a text field with a name that already exists!"
+        )
         if text_size is None:
             text_size = 0.5 * size[1]
-        self.fields[name] = self.fields[name] = visual.TextBox2(
+        self.fields[name] = visual.TextBox2(
             win=self.window, text=text, font='Courier', units="pix", pos=pos, size=size, letterHeight=text_size,
             color=text_color, fillColor=field_color, alignment=text_alignment, autoDraw=True, autoLog=False)
 
+
     def set_field_text(
-            self,
-            name: str,
-            text: str,
+        self,
+        name: str,
+        text: str,
     ) -> None:
         """
         Set the text of a text field.
@@ -197,12 +214,11 @@ class Speller(object):
                 The text
         """
         self.fields[name].setText(text)
-        self.window.flip()
 
     def set_text_field_autodraw(
-            self,
-            name: str,
-            autodraw: bool,
+        self,
+        name: str,
+        autodraw: bool,
     ) -> None:
         """
         Remove a text field.
@@ -217,9 +233,9 @@ class Speller(object):
         self.fields[name].autoDraw = autodraw
 
     def log(
-            self,
-            marker: str,
-            on_flip: bool = False,
+        self,
+        marker: str,
+        on_flip: bool = False,
     ) -> None:
         """
         Log a marker.
@@ -236,13 +252,13 @@ class Speller(object):
                 self.window.callOnFlip(self.outlet.push_sample, [marker])
             else:
                 self.outlet.push_sample([marker])
-    
+
     def run(
-            self,
-            codes: dict,
-            duration: float = None,
-            start_marker: str = None,
-            stop_marker: str = None,
+        self,
+        codes: dict,
+        duration: float = None,
+        start_marker: str = None,
+        stop_marker: str = None,
     ) -> int:
         """
         Present a trial with concurrent flashing of each of the symbols.
@@ -250,11 +266,11 @@ class Speller(object):
         Parameters
         ----------
             codes: dict
-                A dictionary with keys being the symbols to flash and the value a list (the code 
+                A dictionary with keys being the symbols to flash and the value a list (the code
                 sequence) of integer states (images) for each frame
             duration: float (default: None)
                 The duration of the trial in seconds. If the duration is longer than the code
-                sequence, it is repeated. If no duration is given, the full length of the first 
+                sequence, it is repeated. If no duration is given, the full length of the first
                 code is used.
             start_marker: str (default: None)
                 Marker to send upon first frame flip.
@@ -281,7 +297,6 @@ class Speller(object):
 
         # Loop frame flips
         for i in range(n_frames):
-
             # Check quiting
             if i % 60 == 0:
                 if self.is_quit():
@@ -293,23 +308,19 @@ class Speller(object):
             self.window.flip()
 
         # Send stop marker
-        self.log(stop_marker)
+        self.log(stop_marker, on_flip=True)
+        self.window.flip()
 
         # Set autoDraw to True to keep speller visible
         for key in self.keys.values():
             key[0].setAutoDraw(True)
-        self.window.flip()
 
         return 0
 
-    def wait_key(
-            self
-    ) -> None:
+    def wait_key(self) -> None:
         event.waitKeys(keyList=self.control_keys)
 
-    def is_quit(
-            self
-    ) -> bool:
+    def is_quit(self) -> bool:
         """
         Test if a quit is forced by the user by a key-press.
 
@@ -323,9 +334,7 @@ class Speller(object):
             return True
         return False
 
-    def quit(
-            self
-    ) -> None:
+    def quit(self) -> None:
         """
         Quit the speller.
         """
@@ -336,12 +345,26 @@ class Speller(object):
 
 if __name__ == "__main__":
     print("starting")
-    speller = Speller(size=(1920, 1080), width=53.5, distance=50, screen=1, fr=60)
-    speller.add_text_field(name="text", text="test", size=(1920, 400), pos=(0, 340), text_alignment="center")
-    speller.add_key(name="test", size=(100, 100), pos=(0, 0), images=["images/black.png", "images/white.png"])
+    speller = Speller(size=(1920, 1080), width=53,
+                      distance=60, screen=0, fr=60)
+    speller.add_text_field(
+        name="text",
+        text="test",
+        size=(1920, 400),
+        pos=(0, 340),
+        text_alignment="center",
+    )
+    speller.add_key(
+        name="test",
+        size=(100, 100),
+        pos=(0, 0),
+        images=["images/black.png", "images/white.png"],
+    )
     print("waiting")
     speller.wait_key()
     print("flashing")
-    speller.run(codes={"test": 5 * 60 * [1, 0]}, start_marker="start", stop_marker="stop")
+    speller.run(
+        codes={"test": 5 * 60 * [1, 0]}, start_marker="start", stop_marker="stop"
+    )
     print("closing")
     speller.quit()
