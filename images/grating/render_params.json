@@ -1,0 +1,27 @@
+{
+    "debug": false,
+    "query": "n_patches_actual==8",
+    "latest": false,
+    "font_size_deg": 1.0,
+    "contrast": 0.4,
+    "lambda_deg": 0.15,
+    "gamma": 0.6,
+    "phase": 1.5707963267948966,
+    "lab_l": 50.0,
+    "lab_a": 0.0,
+    "lab_b": 127.0,
+    "r_plateau_deg": 0.15,
+    "r_cutoff_deg": 0.3,
+    "calculated_px_params": {
+        "lambda_px": 5.691009848294337,
+        "lambda_deg": 0.15,
+        "r_plateau_px": 5.691009848294337,
+        "r_plateau_deg": 0.15,
+        "r_cutoff_px": 11.382019696588674,
+        "r_cutoff_deg": 0.3,
+        "patch_box_size_px": 42,
+        "gamma": 0.6,
+        "contrast": 0.4,
+        "phase": 1.5707963267948966
+    }
+}
