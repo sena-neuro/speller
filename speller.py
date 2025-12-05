@@ -155,6 +155,19 @@ class Speller(object):
         # Set autoDraw to True for first default key to keep app visible
         self.keys[name][0].setAutoDraw(True)
 
+
+    def reload_keys(self) -> None:
+        """
+        Reloads the image textures from disk for all keys, specifically 
+        targeting indices 2 and up (the grating stimuli).
+        """
+        for name, stim_list in self.keys.items():
+            # Slice from 2 to the end so we skip [0] (OFF) and [1] (CUE)
+            for stim in stim_list[2:]:
+                # Re-setting the image to its own path forces a reload from disk
+                stim.setImage(stim.image)
+
+
     def add_text_field(
         self,
         name: str,
@@ -307,13 +320,13 @@ class Speller(object):
                 self.keys[name][int(code[i % len(code)])].draw()
             self.window.flip()
 
-        # Send stop marker
-        self.log(stop_marker, on_flip=True)
-        self.window.flip()
-
         # Set autoDraw to True to keep speller visible
         for key in self.keys.values():
             key[0].setAutoDraw(True)
+
+        # Send stop marker
+        self.log(stop_marker, on_flip=True)
+        self.window.flip()
 
         return 0
 
