@@ -1,5 +1,5 @@
 from pathlib import Path
-from lsl_recorder import LSLRecorder
+from lsl_recorder import LSLRecorder, find_lsl_recorder_app
 import numpy as np
 import os
 import psychopy
@@ -10,10 +10,9 @@ import subprocess
 import itertools
 
 
-LSL_RECORDER_APP_DIR = (
-    "/usr/local/opt/labrecorder/LabRecorder/LabRecorder.app"
-    # "/opt/homebrew/Cellar/labrecorder/1.16.5_9/LabRecorder/LabRecorder.app"
-)
+# LSL Recorder configuration
+# Priority: environment variable > auto-detection
+LSL_RECORDER_APP_DIR = os.environ.get("LSL_RECORDER_APP") or find_lsl_recorder_app()
 
 STIMULI_DIR = Path() / "images"
 
@@ -52,11 +51,39 @@ KEY_COLORS = [OFF_COLOR, CUE_COLOR, ON_COLOR]  # The colors for the keys
 
 # The speller grid to present
 QWERTY_KEYS = [
-    ["!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "=", "backspace"],  # 13
+    [
+        "!",
+        "@",
+        "#",
+        "$",
+        "%",
+        "^",
+        "&",
+        "asterisk",
+        "(",
+        ")",
+        "_",
+        "=",
+        "backspace",
+    ],  # 13
     ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}"],  # 12
-    ["shift", "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar"],  # 13
+    [
+        "shift",
+        "A",
+        "S",
+        "D",
+        "F",
+        "G",
+        "H",
+        "J",
+        "K",
+        "L",
+        "colon",
+        "quote",
+        "bar",
+    ],  # 13
     ["tilde", "Z", "X", "C", "V", "B", "N", "M", "smaller", "larger", "question"],  # 11
-    ["clear", "space",  "autocomplete", "speaker"],  # 4
+    ["clear", "space", "autocomplete", "speaker"],  # 4
 ]
 MATRIX_KEYS = [
     ["A", "B", "C", "D", "E", "F", "G", "H"],  # 8
@@ -102,8 +129,7 @@ dlg.addField(key="Cue seconds", initial=CUE_TIME)
 dlg.addField(key="Trial seconds", initial=TRIAL_TIME)
 dlg.addField(key="Inter-trial seconds", initial=ITI_TIME)
 dlg.addField(key="Grid", choices=["Matrix", "QWERTY"])
-dlg.addField(key="Codebook", choices=[
-             "shifted m-sequence", "modulated Gold codes"])
+dlg.addField(key="Codebook", choices=["shifted m-sequence", "modulated Gold codes"])
 data_ = dlg.show()
 if dlg.OK:
     subject = data_["Participant:"]
@@ -189,7 +215,7 @@ speller.add_text_field(
     field_color=(-1, -1, -1),
     text_color=(1, 1, 1),
     text_size=int(ppd),
-    text_alignment="center"
+    text_alignment="center",
 )
 instructions = (
     "You will be presented with a grid of symbols.\n"
@@ -201,8 +227,10 @@ instructions = (
     f"This task takes about {n_keys * (CUE_TIME + TRIAL_TIME + ITI_TIME) / 60:.1f} min.\n"
 )
 speller.set_field_text(name="instructions", text=instructions)
-speller.log("start_instructions")
+speller.log("start_instructions", on_flip=True)
 print("Presenting instructions")
+# Ensure the instructions text is rendered to the screen before waiting for a key
+speller.window.flip()
 speller.wait_key()
 speller.set_text_field_autodraw(name="instructions", autodraw=False)
 speller.log("stop_instructions")
@@ -210,8 +238,7 @@ speller.log("stop_instructions")
 # Add keys
 for y in range(len(KEYS)):
     for x in range(len(KEYS[y])):
-        x_pos = int((x - len(KEYS[y]) / 2 + 0.5) *
-                    (KEY_WIDTH + KEY_SPACE) * ppd)
+        x_pos = int((x - len(KEYS[y]) / 2 + 0.5) * (KEY_WIDTH + KEY_SPACE) * ppd)
         y_pos = int(
             -(y - len(KEYS) / 2) * (KEY_HEIGHT + KEY_SPACE) * ppd
             - TEXT_FIELD_HEIGHT * ppd
@@ -295,53 +322,80 @@ speller.set_field_text(name="text", text="")
 # Trial logic
 lambda_list = [0.1, 0.15, 0.2, 0.3, 0.4]
 contrast_list = [0.2, 0.4, 0.6, 0.8, 1.0]
-color_list = [
-    (100, 0, 0),
-    (50, 0, 127),
-    (50, 127, 0)
-]
-conditions = data.createFactorialTrialList({
-    'lambda': lambda_list,
-    'contrast': contrast_list,
-    'color': color_list,
-     })  # tuple list of unique trials
+color_list = [(100, 0, 0), (50, 0, 127), (50, 127, 0)]
+conditions = data.createFactorialTrialList(
+    {
+        "lambda": lambda_list,
+        "contrast": contrast_list,
+        "color": color_list,
+    }
+)  # tuple list of unique trials
 
 
-trials = data.TrialHandler(trialList=conditions, nReps=4, method='random')
+trials = data.TrialHandler(trialList=conditions, nReps=4, method="random")
 rng = np.random.default_rng()
 target_keys_sequence = np.random.choice(flat_keys, size=trials.nTotal, replace=True)
 target_key_iter = iter(target_keys_sequence)
+N_BLOCKS = 6
+n_trials_per_block = 10  # trials.nTotal // N_BLOCKS
 
 for this_trial in trials:
+    # Only pause between blocks (skip before the very first trial)
+    if trials.thisN > 0 and trials.thisN % n_trials_per_block == 0:
+        block_num = trials.thisN // n_trials_per_block + 1
+        speller.set_field_text(
+            name="text",
+            text=f"Block {block_num}/{N_BLOCKS}\n\nTake a short break, then press any key to continue.",
+        )
+        # Log the start of the break on the next flip so timestamps align with display
+        speller.log(f"start_block;block={block_num}", on_flip=True)
+        print(f"Starting block {block_num}/{N_BLOCKS}")
+        # Ensure text is visible
+        speller.window.flip()
+        # Wait for any key to continue
+        speller.wait_key(keyList=None)
+        # Clear the text and send stop marker on flip
+        speller.set_field_text(name="text", text="")
+        speller.log(f"stop_block;block={block_num}", on_flip=True)
+        speller.window.flip()
+
     proc = None
-    current_lambda = this_trial['lambda']
-    current_contrast = this_trial['contrast']
-    lab_l, lab_a, lab_b = this_trial['color']
+    current_lambda = this_trial["lambda"]
+    current_contrast = this_trial["contrast"]
+    lab_l, lab_a, lab_b = this_trial["color"]
     query_string = f"n_patches_actual==8"
 
     cmd = [
-        sys.executable,                      # Uses the current python interpreter
-        "images/generate_key_stimuli_color.py",
+        sys.executable,  # Uses the current python interpreter
+        "images/generate_fast.py",
         "render",
-        "--query", query_string,             # Inject the random key here
-        "--font_size_deg", "1",
-        "--contrast", str(current_contrast), # Inject contrast
-        "--lambda_deg", str(current_lambda), # Inject calculated lambda
-        "--lab_l", str(lab_l),               # Inject L
-        "--lab_a", str(lab_a),               # Inject A
-        "--lab_b", str(lab_b),                # Inject B
-        "--r_cutoff_deg", "0.3",
-        "--gamma", "0.6"
+        "--query",
+        query_string,  # Inject the random key here
+        "--font_size_deg",
+        "1",
+        "--contrast",
+        str(current_contrast),  # Inject contrast
+        "--lambda_deg",
+        str(current_lambda),  # Inject calculated lambda
+        "--lab_l",
+        str(lab_l),  # Inject L
+        "--lab_a",
+        str(lab_a),  # Inject A
+        "--lab_b",
+        str(lab_b),  # Inject B
+        "--r_cutoff_deg",
+        "0.3",
+        "--gamma",
+        "0.6",
     ]
 
-    proc = subprocess.Popen(cmd)   
-
+    proc = subprocess.Popen(cmd)
 
     target_key = next(target_key_iter)
     # there is also trials.thisTrialN and trials.thisRepN
-    trial_idx = trials.thisN +1
+    trial_idx = trials.thisN + 1
     print(trials.thisTrial)
-    trials.addData('target_key', target_key)
+    trials.addData("target_key", target_key)
     print(f"{1 + trials.thisN:02d}/{trials.nTotal:d}\t{target_key:s}")
 
     # Cue
@@ -368,13 +422,13 @@ for this_trial in trials:
 
     # --- Inter-trial & Background Reloading ---
     reloaded = False
-    
+
     if ITI_TIME > 0:
         n_iti_frames = int(ITI_TIME * speller.fr)
-        
+
         # Send start marker
         speller.log(f"start_inter_trial;trial={trial_idx}", on_flip=True)
-        
+
         for i in range(n_iti_frames):
             # 1. Flip window immediately
             # Since speller.run() sets autoDraw=True, this keeps the keys visible.
@@ -383,17 +437,17 @@ for this_trial in trials:
             # 2. Check background process
             # If generation is done and we haven't reloaded yet, do it now.
             if proc and not reloaded:
-                if proc.poll() is not None: # Check if process finished
-                    proc.wait()             # Clean up process
-                    speller.reload_keys()   # Reload textures
-                    reloaded = True         # Mark as done
+                if proc.poll() is not None:  # Check if process finished
+                    proc.wait()  # Clean up process
+                    speller.reload_keys()  # Reload textures
+                    reloaded = True  # Mark as done
 
             # 3. Check Quit (every 60 frames)
             if i % 60 == 0 and speller.is_quit():
                 recorder.stop()
                 speller.quit()
                 sys.exit()
-        
+
         # Send stop marker
         speller.log(f"stop_inter_trial;trial={trial_idx}", on_flip=True)
         speller.window.flip()

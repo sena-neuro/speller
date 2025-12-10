@@ -331,7 +331,31 @@ class Speller(object):
         return 0
 
     def wait_key(self) -> None:
+        """
+        Wait for a key press.
+
+        Parameters
+        ----------
+        keyList: list[str] or None
+            If `None`, accept any key. Otherwise wait for one of the keys in the list.
+        """
+        # Backwards-compatible signature: if no argument provided, wait for control keys
         event.waitKeys(keyList=self.control_keys)
+
+    def wait_key(self, keyList=None) -> None:
+        """
+        Wait for a key press, optionally restricting to `keyList`.
+
+        Parameters
+        ----------
+        keyList: list[str] or None
+            If `None`, accept any key. If a list is provided, only those keys will be accepted.
+        """
+        if keyList is None:
+            # Accept any key
+            event.waitKeys()
+        else:
+            event.waitKeys(keyList=keyList)
 
     def is_quit(self) -> bool:
         """
