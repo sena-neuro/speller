@@ -211,3 +211,8 @@ __marimo__/
 # Mac
 .DS_Store
 ._*
+
+*.bak
+
+images/*.png
+images/*/*.jpg
