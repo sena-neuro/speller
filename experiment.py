@@ -14,9 +14,11 @@ import itertools
 # Priority: environment variable > auto-detection
 LSL_RECORDER_APP_DIR = os.environ.get("LSL_RECORDER_APP") or find_lsl_recorder_app()
 
-STIMULI_DIR = Path() / "images"
+STIMULI_DIR = Path() / "images"c 
 
-DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "cvep")
+PROJECT_DIR = Path(__file__).parent.resolve()
+DATA_DIR = PROJECT_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
 SUBJECT = "01"  # subject identifier
 SESSION = "01"  # session identifier
 RUN = 1  # run identifier
@@ -27,7 +29,7 @@ CUE_TIME = 0.8  # Time to present the cue, the target symbol (s)
 TRIAL_TIME = 4.2  # Time to present the visual stimulation (s)
 ITI_TIME = 0.5  # Inter-trial time, a break in-between trials (s)
 
-SCREEN_FR = 60  # The refresh rate of the monitor (Hz)
+SCREEN_FR = 120  # The refresh rate of the monitor (Hz)
 SCREEN_ID = 0  # The ID of the monitor (#)
 SCREEN_SIZE = (1920, 1080)  # The resolution of the monitor (px, px)
 SCREEN_WIDTH = 53  # The width of the monitor (cm)
@@ -41,8 +43,6 @@ KEY_WIDTH = 4  # The width of the keys (visual degrees)
 KEY_HEIGHT = 4  # The height of the keys (visual degrees)
 KEY_SPACE = 0.8  # The distance between keys (visual degrees)
 
-# ON_COLOR = "black"
-# OFF_COLOR = "black"
 WINDOW_COLOR = "black"
 ON_COLOR = "grating"
 OFF_COLOR = "gray"
@@ -159,11 +159,11 @@ else:
 flat_keys = [key for row in KEYS for key in row]
 n_keys = len(flat_keys)
 if codebook.lower() == "shifted m-sequence":
-    codes = np.load(os.path.join("codes", "shifted_m_sequence.npz"))["codes"]
+    codes = np.load(PROJECT_DIR / "codes" / "shifted_m_sequence.npz")["codes"]
     if grid.lower() == "matrix":
         codes = codes[::2, :]  # select the proper lags
 elif codebook.lower() == "modulated gold codes":
-    codes = np.load(os.path.join("codes", "modulated_gold_codes.npz"))["codes"]
+    codes = np.load(PROJECT_DIR / "codes" / "modulated_gold_codes.npz")["codes"]
 else:
     raise Exception("Unknown codebook:", codebook)
 
@@ -443,7 +443,7 @@ for this_trial in trials:
                     reloaded = True  # Mark as done
 
             # 3. Check Quit (every 60 frames)
-            if i % 60 == 0 and speller.is_quit():
+            if i % PRESENTATION_RATE == 0 and speller.is_quit():
                 recorder.stop()
                 speller.quit()
                 sys.exit()

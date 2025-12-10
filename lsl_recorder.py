@@ -148,7 +148,7 @@ class LSLRecorder(object):
         msg = (
             b"filename {root:%b} {task:%b} {run:%x} {participant:%b} {session:%b}\n"
             % (
-                root.encode("utf8"),
+                str(root).encode("utf8"),
                 task.encode("utf8"),
                 run,
                 subject.encode("utf8"),
