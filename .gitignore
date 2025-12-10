@@ -215,4 +215,4 @@ __marimo__/
 *.bak
 
 images/*.png
-images/*/*.jpg
+images/*/*.png
